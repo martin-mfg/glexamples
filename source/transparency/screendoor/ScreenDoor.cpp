@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-#include <assimp/cimport.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/constants.hpp>
@@ -20,21 +18,20 @@
 #include <globjects/Texture.h>
 
 #include <gloperate/base/RenderTargetType.h>
-
+#include <gloperate/base/make_unique.hpp>
+#include <gloperate/resources/ResourceManager.h>
 #include <gloperate/painter/TargetFramebufferCapability.h>
 #include <gloperate/painter/ViewportCapability.h>
 #include <gloperate/painter/PerspectiveProjectionCapability.h>
 #include <gloperate/painter/CameraCapability.h>
-
 #include <gloperate/primitives/AdaptiveGrid.h>
+#include <gloperate/primitives/Scene.h>
+#include <gloperate/primitives/PolygonalDrawable.h>
+#include <gloperate/primitives/PolygonalGeometry.h>
 
-#include <reflectionzeug/PropertyGroup.h>
+#include <reflectionzeug/property/PropertyGroup.h>
+
 #include <widgetzeug/make_unique.hpp>
-
-#include "../AssimpLoader.h"
-#include "../AssimpProcessing.h"
-#include "../PolygonalDrawable.h"
-#include "../PolygonalGeometry.h"
 
 
 using namespace gl;
@@ -45,13 +42,13 @@ using widgetzeug::make_unique;
 
 ScreenDoor::ScreenDoor(gloperate::ResourceManager & resourceManager)
 :   Painter(resourceManager)
-,   m_targetFramebufferCapability{addCapability(make_unique<gloperate::TargetFramebufferCapability>())}
-,   m_viewportCapability{addCapability(make_unique<gloperate::ViewportCapability>())}
-,   m_projectionCapability{addCapability(make_unique<gloperate::PerspectiveProjectionCapability>(m_viewportCapability))}
-,   m_cameraCapability{addCapability(make_unique<gloperate::CameraCapability>())}
-,   m_multisampling{false}
-,   m_multisamplingChanged{false}
-,   m_transparency{0.5}
+,   m_targetFramebufferCapability(addCapability(new gloperate::TargetFramebufferCapability()))
+,   m_viewportCapability(addCapability(new gloperate::ViewportCapability()))
+,   m_projectionCapability(addCapability(new gloperate::PerspectiveProjectionCapability(m_viewportCapability)))
+,   m_cameraCapability(addCapability(new gloperate::CameraCapability()))
+,   m_multisampling(false)
+,   m_multisamplingChanged(false)
+,   m_transparency(0.5)
 {    
     setupPropertyGroup();
 }
@@ -147,7 +144,7 @@ void ScreenDoor::onPaint()
     m_grid->update(eye, transform);
     m_grid->draw();
     
-    glEnable(GL_MIN_SAMPLE_SHADING_VALUE);
+    glEnable(GL_SAMPLE_SHADING);
     glMinSampleShading(1.0);
     
     m_program->use();
@@ -161,7 +158,7 @@ void ScreenDoor::onPaint()
     
     m_program->release();
     
-    glDisable(GL_MIN_SAMPLE_SHADING_VALUE);
+    glDisable(GL_SAMPLE_SHADING);
     glMinSampleShading(0.0);
 
     Framebuffer::unbind(GL_FRAMEBUFFER);
@@ -187,10 +184,18 @@ void ScreenDoor::onPaint()
 
 void ScreenDoor::setupFramebuffer()
 {
-    const auto textureTarget = m_multisampling ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-    
-    m_colorAttachment = Texture::createDefault(textureTarget);
-    m_depthAttachment = Texture::createDefault(textureTarget);
+    if (m_multisampling)
+    {
+        m_colorAttachment = new Texture(GL_TEXTURE_2D_MULTISAMPLE);
+        m_colorAttachment->bind(); // workaround
+        m_depthAttachment = new Texture(GL_TEXTURE_2D_MULTISAMPLE);
+        m_depthAttachment->bind(); // workaround
+    }
+    else
+    {
+        m_colorAttachment = Texture::createDefault(GL_TEXTURE_2D);
+        m_depthAttachment = Texture::createDefault(GL_TEXTURE_2D);
+    }
     
     m_fbo = make_ref<Framebuffer>();
 
@@ -215,21 +220,21 @@ void ScreenDoor::setupProjection()
 
 void ScreenDoor::setupDrawable()
 {
-    auto assimpLoader = AssimpLoader{};
-    const auto scene = assimpLoader.load("data/transparency/transparency_scene.obj", {});
-
+    // Load scene
+    const auto scene = m_resourceManager.load<gloperate::Scene>("data/transparency/transparency_scene.obj");
     if (!scene)
     {
         std::cout << "Could not load file" << std::endl;
         return;
     }
 
-    const auto geometries = AssimpProcessing::convertToGeometries(scene);
+    // Create a renderable for each mesh
+    for (const auto * geometry : scene->meshes()) {
+        m_drawables.push_back(gloperate::make_unique<gloperate::PolygonalDrawable>(*geometry));
+    }
 
-    aiReleaseImport(scene);
-    
-    for (const auto & geometry : geometries)
-        m_drawables.push_back(make_unique<PolygonalDrawable>(geometry));
+    // Release scene
+    delete scene;
 }
 
 void ScreenDoor::setupProgram()

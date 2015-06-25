@@ -1,5 +1,6 @@
 
-set(target viewer)
+# Target
+set(target glexamples-viewer)
 message(STATUS "App ${target}")
 
 
@@ -52,12 +53,10 @@ set(libs
 # Sources
 
 set(headers
-    QtViewerMapping.h
     util.hpp
 )
 
 set(sources
-    QtViewerMapping.cpp
     main.cpp
 )
 
