@@ -30,25 +30,19 @@ using namespace gl;
 using namespace glm;
 using namespace globjects;
 
+
 Platform::Platform(gloperate::ResourceManager & resourceManager)
 :   Painter(resourceManager)
-,   m_targetFramebufferCapability{new gloperate::TargetFramebufferCapability}
-,   m_viewportCapability{new gloperate::ViewportCapability}
-,   m_projectionCapability{new gloperate::PerspectiveProjectionCapability{m_viewportCapability}}
-,   m_typedRenderTargetCapability{new gloperate::TypedRenderTargetCapability{}}
-,   m_cameraCapability{new gloperate::CameraCapability{}}
-,   m_timeCapability{new gloperate::VirtualTimeCapability}
+,   m_targetFramebufferCapability(addCapability(new gloperate::TargetFramebufferCapability()))
+,   m_viewportCapability(addCapability(new gloperate::ViewportCapability()))
+,   m_projectionCapability(addCapability(new gloperate::PerspectiveProjectionCapability(m_viewportCapability)))
+,   m_typedRenderTargetCapability(addCapability(new gloperate::TypedRenderTargetCapability()))
+,   m_cameraCapability(addCapability(new gloperate::CameraCapability()))
+,   m_timeCapability(addCapability(new gloperate::VirtualTimeCapability()))
 {
     m_timeCapability->setLoopDuration(20.0f * pi<float>());
 
     m_targetFramebufferCapability->changed.connect([this](){ this->onTargetFramebufferChanged();});
-
-    addCapability(m_targetFramebufferCapability);
-    addCapability(m_viewportCapability);
-    addCapability(m_projectionCapability);
-    addCapability(m_cameraCapability);
-    addCapability(m_timeCapability);
-    addCapability(m_typedRenderTargetCapability);
 }
 
 Platform::~Platform()
