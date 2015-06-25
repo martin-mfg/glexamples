@@ -12,6 +12,7 @@
 #include <globjects/VertexArray.h>
 #include <globjects/VertexAttributeBinding.h>
 #include <globjects/Buffer.h>
+#include <globjects/logging.h>
 
 
 using namespace glm;
@@ -21,6 +22,11 @@ using namespace globjects;
 
 std::vector<vec3> HitmanBox::vertices(const gl::GLfloat size, const gl::GLfloat height, const gl::GLfloat offset)
 {
+    if (2*offset > size)
+    {
+        warning() << "HitmanBox: offset*2 bigger than size (resulting in flickering at the center).";
+    }
+
     const gl::GLfloat x = size / 2;
     const gl::GLfloat y = height / 2;
     const gl::GLfloat total = size + 4*height + 2*offset;
@@ -217,12 +223,12 @@ std::vector<vec3> HitmanBox::vertices(const gl::GLfloat size, const gl::GLfloat 
     ,   vec3(-x+offset  , -y,-x+offset ), vec3(0,-1,0), vec3(c1, c5, 0)
 
     // plate
-    ,   vec3(-x+offset, y-(offset/2), x-offset), vec3(0,1,0), vec3(c4, c4, 0)
-    ,   vec3( x-offset, y-(offset/2), x-offset), vec3(0,1,0), vec3(c5, c4, 0)
-    ,   vec3( x-offset, y-(offset/2),-x+offset), vec3(0,1,0), vec3(c5, c5, 0)
-    ,   vec3(-x+offset, y-(offset/2), x-offset), vec3(0,1,0), vec3(c4, c4, 0)
-    ,   vec3( x-offset, y-(offset/2),-x+offset), vec3(0,1,0), vec3(c5, c5, 0)
-    ,   vec3(-x+offset, y-(offset/2),-x+offset), vec3(0,1,0), vec3(c4, c5, 0)
+    ,   vec3(-x+offset, y-(height/3), x-offset), vec3(0,1,0), vec3(c4, c4, 0)
+    ,   vec3( x-offset, y-(height/3), x-offset), vec3(0,1,0), vec3(c5, c4, 0)
+    ,   vec3( x-offset, y-(height/3),-x+offset), vec3(0,1,0), vec3(c5, c5, 0)
+    ,   vec3(-x+offset, y-(height/3), x-offset), vec3(0,1,0), vec3(c4, c4, 0)
+    ,   vec3( x-offset, y-(height/3),-x+offset), vec3(0,1,0), vec3(c5, c5, 0)
+    ,   vec3(-x+offset, y-(height/3),-x+offset), vec3(0,1,0), vec3(c4, c5, 0)
     };
 }
 
